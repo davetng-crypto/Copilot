@@ -1,0 +1,422 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rachel's Copilot Adventure - Layer 1</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#0f172a;font-family:Arial,Helvetica,sans-serif;color:#111}
+#game{display:block;margin:auto;background:#c7f0d2;border:6px solid #172033;border-radius:18px;box-shadow:0 18px 55px rgba(0,0,0,.55)}
+#hud{position:fixed;left:18px;top:18px;background:rgba(255,255,255,.94);border:3px solid #172033;border-radius:16px;padding:12px 16px;line-height:1.5;font-size:15px;display:none}
+#dialog{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(920px,92vw);min-height:90px;background:#fff;border:4px solid #172033;border-radius:18px;padding:14px 18px;font-size:18px;display:none}
+#dialog b{color:#2563eb}
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1d4ed8);color:white;z-index:5}
+.card{width:min(820px,92vw);background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.25);border-radius:26px;padding:34px;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+h1{font-size:44px;margin:0 0 8px}
+h2{font-size:24px;margin:0 0 14px;color:#dbeafe}
+p{line-height:1.55}
+button{border:0;border-radius:15px;padding:13px 22px;margin:8px;font-size:17px;font-weight:700;cursor:pointer;background:white;color:#1d4ed8}
+button:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.25)}
+#topBtns{position:fixed;right:18px;top:18px;display:none;gap:8px}
+#topBtns button{padding:9px 13px;margin:0;font-size:14px}
+#toast{position:fixed;right:18px;top:72px;background:#111827;color:white;border-radius:12px;padding:10px 14px;display:none}
+</style>
+</head>
+<body>
+<canvas id="game" width="1040" height="660"></canvas>
+<div id="hud"></div>
+<div id="topBtns"><button onclick="toggleMute()">🔊 Music</button><button onclick="pauseGame()">⏸ Pause</button><button onclick="exitGame()">🚪 Exit</button></div>
+<div id="dialog"></div>
+<div id="toast"></div>
+<div id="menu">
+ <div class="card" id="menuCard">
+  <h1>Rachel's Copilot Adventure</h1>
+  <h2>Layer 1: Search Company Knowledge</h2>
+  <p>Help Rachel use <b>Copilot Chat</b> to find trusted company documents and answer urgent office questions.</p>
+  <p><b>Move:</b> Arrow Keys &nbsp; | &nbsp; <b>Interact:</b> Space &nbsp; | &nbsp; <b>Mute:</b> M</p>
+  <button onclick="startGame()">▶ Start Game</button>
+  <button onclick="howToPlay()">❓ How to Play</button>
+  <button onclick="exitGame()">🚪 Exit</button>
+ </div>
+</div>
+
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const hud=document.getElementById('hud'),dialog=document.getElementById('dialog'),menu=document.getElementById('menu'),menuCard=document.getElementById('menuCard'),toast=document.getElementById('toast'),topBtns=document.getElementById('topBtns');
+
+if(!CanvasRenderingContext2D.prototype.roundRect){
+ CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+  this.beginPath();this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);
+  this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);
+  this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);this.closePath();return this;
+ }
+}
+
+// ---------- Audio: starts only after Start button ----------
+let ac,muted=false,musicTimer=null,musicStep=0,audioOn=false;
+function initAudio(){
+ if(audioOn) return;
+ ac=new (window.AudioContext||window.webkitAudioContext)();
+ audioOn=true;
+ startMusic();
+}
+function tone(freq,dur=.12,type='sine',vol=.05,delay=0){
+ if(!audioOn||muted) return;
+ const now=ac.currentTime+delay;
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,now);g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+ o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+dur);
+}
+function startMusic(){
+ if(musicTimer) clearInterval(musicTimer);
+ musicTimer=setInterval(()=>{
+   if(muted||gameState!=='play') return;
+   const melody=[523,659,784,659,587,698,880,698,659,784,988,784,698,587,659,523];
+   const bass=[131,131,165,165,147,147,196,196];
+   tone(bass[musicStep%bass.length],.18,'triangle',.025);
+   tone(melody[musicStep%melody.length],.16,'sine',.035);
+   if(musicStep%4===0) tone(1046,.05,'triangle',.015,.12);
+   musicStep++;
+ },380);
+}
+function sfx(kind){
+ if(kind==='talk'){tone(620,.08,'triangle');tone(820,.08,'triangle',.05,.08)}
+ if(kind==='copilot'){[392,523,659,784,1046].forEach((f,i)=>tone(f,.08,'sine',.045,i*.055))}
+ if(kind==='ok'){[660,880,1175].forEach((f,i)=>tone(f,.09,'triangle',.05,i*.08))}
+ if(kind==='bad'){tone(160,.18,'sawtooth',.05);tone(110,.20,'sawtooth',.04,.12)}
+ if(kind==='win'){[523,659,784,1046,1318].forEach((f,i)=>tone(f,.13,'triangle',.055,i*.11))}
+ if(kind==='step'){tone(160,.025,'square',.012)}
+}
+function toggleMute(){muted=!muted;showToast(muted?'Music muted':'Music on');}
+window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='m')toggleMute()});
+
+// ---------- Game Data ----------
+const missions=[
+ {npc:'HR Manager',ask:'I need leave benefits and first-week guidance.',doc:'Employee Handbook'},
+ {npc:'Marketing Lead',ask:'I need our vision, mission and company values.',doc:'Company Profile'},
+ {npc:'Finance Manager',ask:'I need expense claims and quick admin answers.',doc:'Company FAQ'},
+ {npc:'IT Officer',ask:'I need the AI Usage Policy and information security rules.',doc:'Corporate Policies'},
+ {npc:'CEO',ask:'I need strategic priorities and business goals.',doc:'Strategic Plan'}
+];
+const npcs=[
+ {name:'HR Manager',x:125,y:120,emoji:'👩',done:false},
+ {name:'Marketing Lead',x:365,y:120,emoji:'👩',done:false},
+ {name:'Finance Manager',x:125,y:325,emoji:'👨',done:false},
+ {name:'IT Officer',x:365,y:325,emoji:'👨',done:false},
+ {name:'CEO',x:570,y:120,emoji:'👔',done:false}
+];
+const docs=[
+ {name:'Company Profile',x:760,y:105,c:'#3b82f6'},
+ {name:'Employee Handbook',x:875,y:245,c:'#16a34a'},
+ {name:'Company FAQ',x:715,y:455,c:'#f59e0b'},
+ {name:'Corporate Policies',x:485,y:535,c:'#ef4444'},
+ {name:'Strategic Plan',x:205,y:470,c:'#8b5cf6'},
+ {name:'Department Overview',x:180,y:180,c:'#06b6d4'}
+];
+const fakes=[
+ {name:'Old Version',x:540,y:155},
+ {name:'Internet Article',x:365,y:520},
+ {name:'Personal Notes',x:900,y:515},
+ {name:'Wrong Folder',x:70,y:565}
+];
+
+let r={x:70,y:590,w:46,h:58,speed:3.8,hasDoc:null};
+let keys={},gameState='menu',phase='talk',missionIndex=0,score=0,lives=3,time=120,lastTick=performance.now(),particles=[],lastStep=0;
+
+window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' ') {e.preventDefault();interact();} if(e.key==='Escape')pauseGame();});
+window.addEventListener('keyup',e=>keys[e.key]=false);
+
+function startGame(){
+ initAudio();
+ gameState='play';phase='talk';missionIndex=0;score=0;lives=3;time=120;lastTick=performance.now();
+ menu.style.display='none';hud.style.display='block';dialog.style.display='block';topBtns.style.display='flex';
+ say('Welcome! Talk to the glowing employee first.');
+ loop();
+}
+function howToPlay(){
+ menuCard.innerHTML=`<h1>How to Play</h1>
+ <p style="text-align:left">
+  1. Talk to the glowing employee.<br>
+  2. Visit the blue <b>Copilot Chat</b> kiosk and press Space.<br>
+  3. Copilot tells Rachel which source to trust.<br>
+  4. Find the glowing document.<br>
+  5. Avoid red fake documents.<br>
+  6. Return to the employee to complete the mission.
+ </p>
+ <button onclick="location.reload()">⬅ Back</button>`;
+}
+function pauseGame(){
+ if(gameState!=='play') return;
+ gameState='pause';menu.style.display='flex';
+ menuCard.innerHTML=`<h1>Paused</h1><p>Rachel is waiting.</p><button onclick="resumeGame()">▶ Resume</button><button onclick="location.reload()">🏠 Main Menu</button><button onclick="exitGame()">🚪 Exit</button>`;
+}
+function resumeGame(){menu.style.display='none';gameState='play';lastTick=performance.now();loop();}
+function exitGame(){document.body.innerHTML='<div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;color:white;font-family:Arial;text-align:center"><div><h1>Game Closed</h1><p>You may close this browser tab.</p></div></div>'}
+function showToast(t){toast.textContent=t;toast.style.display='block';setTimeout(()=>toast.style.display='none',1100)}
+function say(t){dialog.innerHTML=t}
+function currentNpc(){return npcs.find(n=>n.name===missions[missionIndex].npc)}
+function targetDoc(){return docs.find(d=>d.name===missions[missionIndex].doc)}
+function near(x,y,rad){return Math.hypot((r.x+r.w/2)-x,(r.y+r.h/2)-y)<rad}
+function rectHit(a){return r.x<a.x+44&&r.x+r.w>a.x&&r.y<a.y+58&&r.y+r.h>a.y}
+
+// ---------- Drawing ----------
+function drawOffice(){
+ ctx.fillStyle='#bfe8cf';ctx.fillRect(0,0,1040,660);
+ ctx.fillStyle='#a8dfba';for(let x=0;x<1040;x+=40)ctx.fillRect(x,0,2,660);for(let y=0;y<660;y+=40)ctx.fillRect(0,y,1040,2);
+
+ // rooms
+ ctx.strokeStyle='#243044';ctx.lineWidth=5;
+ [[45,55,625,180],[45,260,430,150],[690,55,300,250],[45,440,440,155],[530,430,460,160]].forEach(a=>ctx.strokeRect(...a));
+ ctx.font='bold 14px Arial';ctx.fillStyle='#374151';
+ ctx.fillText('HR / Marketing / CEO',65,78);ctx.fillText('Finance / IT',65,283);ctx.fillText('Knowledge Library',710,80);ctx.fillText('Operations Zone',60,463);ctx.fillText('Shared Resources',550,453);
+
+ // desks
+ [[215,100],[455,100],[240,305],[750,120],[680,475]].forEach(d=>{ctx.fillStyle='#8b5e3c';ctx.beginPath();ctx.roundRect(d[0],d[1],105,48,6);ctx.fill();ctx.fillStyle='#d6b88a';ctx.fillRect(d[0]+8,d[1]+8,89,32)});
+ // plants
+ [[965,40],[35,610],[995,610],[500,255],[615,400]].forEach(p=>{ctx.fillStyle='#7c3aed';ctx.fillRect(p[0],p[1],20,26);ctx.fillStyle='#16a34a';ctx.beginPath();ctx.arc(p[0]+10,p[1]-4,17,0,Math.PI*2);ctx.fill()});
+
+ // Copilot kiosk
+ const glow=phase==='copilot';
+ if(glow){ctx.shadowColor='#38bdf8';ctx.shadowBlur=28;}
+ ctx.fillStyle='#0284c7';ctx.beginPath();ctx.roundRect(495,300,82,82,16);ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle='#fff';ctx.font='bold 38px Arial';ctx.fillText('C',523,354);ctx.font='14px Arial';ctx.fillStyle='#111827';ctx.fillText('Copilot Chat',500,400);
+}
+
+function drawNpc(n){
+ const active=currentNpc()===n&&phase==='talk';
+ if(active){ctx.strokeStyle='#facc15';ctx.lineWidth=5;ctx.beginPath();ctx.arc(n.x,n.y,36,0,Math.PI*2);ctx.stroke();}
+ ctx.font='34px Arial';ctx.fillText(n.done?'😊':n.emoji,n.x-17,n.y+11);
+ ctx.font='13px Arial';ctx.fillStyle='#111827';ctx.textAlign='center';ctx.fillText(n.name,n.x,n.y+42);ctx.textAlign='left';
+}
+
+function drawDoc(d){
+ const glow=phase==='find'&&d.name===targetDoc().name;
+ if(glow){ctx.shadowColor='#fde047';ctx.shadowBlur=30;}
+ ctx.fillStyle=d.c;ctx.beginPath();ctx.roundRect(d.x,d.y,46,58,5);ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(d.x+9,d.y+12,28,4);ctx.fillRect(d.x+9,d.y+23,22,4);ctx.fillRect(d.x+9,d.y+34,28,4);
+ ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.textAlign='center';ctx.fillText(d.name,d.x+23,d.y+74);ctx.textAlign='left';
+}
+function drawFake(f){
+ ctx.fillStyle='#b91c1c';ctx.beginPath();ctx.roundRect(f.x,f.y,46,58,5);ctx.fill();
+ ctx.fillStyle='#fee2e2';ctx.fillRect(f.x+9,f.y+13,28,4);ctx.fillRect(f.x+9,f.y+25,20,4);
+ ctx.fillStyle='#fff';ctx.font='bold 22px Arial';ctx.fillText('!',f.x+20,f.y+48);
+ ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.textAlign='center';ctx.fillText(f.name,f.x+23,f.y+74);ctx.textAlign='left';
+}
+
+function drawRachel(){
+ const x=r.x,y=r.y;
+ ctx.save();
+
+ const walk = Math.sin(Date.now()/135);
+ const bob = walk * 1.25;
+
+ // soft shadow
+ ctx.fillStyle='rgba(15,23,42,.22)';
+ ctx.beginPath();ctx.ellipse(x+23,y+56,24,7,0,0,Math.PI*2);ctx.fill();
+
+ // shoes
+ ctx.fillStyle='#111827';
+ ctx.beginPath();ctx.roundRect(x+8,y+49+bob,12,5,3);ctx.fill();
+ ctx.beginPath();ctx.roundRect(x+27,y+49-bob,12,5,3);ctx.fill();
+
+ // legs
+ ctx.fillStyle='#f7c7aa';
+ ctx.beginPath();ctx.roundRect(x+13,y+38,5,12,3);ctx.fill();
+ ctx.beginPath();ctx.roundRect(x+29,y+38,5,12,3);ctx.fill();
+
+ // skirt
+ ctx.fillStyle='#1e293b';
+ ctx.beginPath();
+ ctx.moveTo(x+10,y+34);
+ ctx.lineTo(x+36,y+34);
+ ctx.lineTo(x+42,y+44);
+ ctx.lineTo(x+4,y+44);
+ ctx.closePath();
+ ctx.fill();
+
+ // blouse
+ ctx.fillStyle='#f8fafc';
+ ctx.beginPath();ctx.roundRect(x+9,y+19,28,20,8);ctx.fill();
+
+ // blue vest
+ ctx.fillStyle='#60a5fa';
+ ctx.beginPath();ctx.roundRect(x+12,y+20,22,18,7);ctx.fill();
+
+ // collar
+ ctx.fillStyle='#ffffff';
+ ctx.beginPath();ctx.moveTo(x+16,y+20);ctx.lineTo(x+23,y+29);ctx.lineTo(x+30,y+20);ctx.closePath();ctx.fill();
+
+ // ribbon tie
+ ctx.fillStyle='#2563eb';
+ ctx.beginPath();ctx.arc(x+20,y+28,4,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.arc(x+27,y+28,4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#1d4ed8';
+ ctx.beginPath();ctx.moveTo(x+23.5,y+29);ctx.lineTo(x+20,y+37);ctx.lineTo(x+28,y+37);ctx.closePath();ctx.fill();
+
+ // arms
+ ctx.fillStyle='#f7c7aa';
+ ctx.beginPath();ctx.roundRect(x+3,y+23,7,17,4);ctx.fill();
+ ctx.beginPath();ctx.roundRect(x+36,y+23,7,17,4);ctx.fill();
+
+ // handbag
+ ctx.strokeStyle='#7c2d12';ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(x+41,y+32,7,Math.PI,0);ctx.stroke();
+ ctx.fillStyle='#a16207';
+ ctx.beginPath();ctx.roundRect(x+37,y+33,15,14,4);ctx.fill();
+ ctx.fillStyle='#fde68a';ctx.fillRect(x+43,y+37,3,3);
+
+ // NEW hairstyle: high ponytail with soft side fringe
+ ctx.fillStyle='#5b2c16';
+ // ponytail behind head
+ ctx.beginPath();
+ ctx.ellipse(x+12,y+3,10,15,-0.75,0,Math.PI*2);
+ ctx.fill();
+ ctx.beginPath();
+ ctx.ellipse(x+7,y+16,8,18,-0.35,0,Math.PI*2);
+ ctx.fill();
+
+ // main hair cap
+ ctx.fillStyle='#7c3f1d';
+ ctx.beginPath();
+ ctx.ellipse(x+23,y+14,20,20,0,0,Math.PI*2);
+ ctx.fill();
+
+ // hair bun / tied part at crown
+ ctx.fillStyle='#6b3419';
+ ctx.beginPath();ctx.arc(x+18,y+0,9,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#f472b6';
+ ctx.beginPath();ctx.roundRect(x+13,y+0,12,5,3);ctx.fill();
+
+ // face
+ ctx.fillStyle='#ffd8b5';
+ ctx.beginPath();ctx.arc(x+23,y+17,14,0,Math.PI*2);ctx.fill();
+
+ // side hair strands
+ ctx.fillStyle='#5b2c16';
+ ctx.beginPath();ctx.ellipse(x+10,y+18,5,14,-0.1,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.ellipse(x+36,y+18,5,14,0.15,0,Math.PI*2);ctx.fill();
+
+ // fringe sweep
+ ctx.fillStyle='#8b451f';
+ ctx.beginPath();
+ ctx.arc(x+13,y+8,8,0,Math.PI*2);
+ ctx.arc(x+22,y+5,10,0,Math.PI*2);
+ ctx.arc(x+31,y+8,8,0,Math.PI*2);
+ ctx.fill();
+
+ // curved side fringe line
+ ctx.strokeStyle='rgba(255,255,255,.35)';
+ ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(x+18,y+8,12,3.7,5.1);ctx.stroke();
+
+ // cute hair clip
+ ctx.fillStyle='#f9a8d4';
+ ctx.beginPath();ctx.roundRect(x+33,y+8,11,5,3);ctx.fill();
+ ctx.fillStyle='#fff1f2';
+ ctx.beginPath();ctx.arc(x+36,y+10.5,1.8,0,Math.PI*2);ctx.fill();
+
+ // eyes
+ ctx.fillStyle='#111827';
+ ctx.beginPath();ctx.ellipse(x+18,y+18,2.6,3.3,0,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.ellipse(x+28,y+18,2.6,3.3,0,0,Math.PI*2);ctx.fill();
+
+ // eye shine
+ ctx.fillStyle='#ffffff';
+ ctx.beginPath();ctx.arc(x+17.2,y+16.8,.9,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.arc(x+27.2,y+16.8,.9,0,Math.PI*2);ctx.fill();
+
+ // eyebrows
+ ctx.strokeStyle='#5b2c16';ctx.lineWidth=1.4;
+ ctx.beginPath();ctx.moveTo(x+15,y+14);ctx.quadraticCurveTo(x+18,y+12,x+21,y+14);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(x+25,y+14);ctx.quadraticCurveTo(x+28,y+12,x+31,y+14);ctx.stroke();
+
+ // cheeks
+ ctx.fillStyle='rgba(244,114,182,.38)';
+ ctx.beginPath();ctx.arc(x+13,y+23,3,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.arc(x+33,y+23,3,0,Math.PI*2);ctx.fill();
+
+ // smile
+ ctx.strokeStyle='#9f1239';ctx.lineWidth=1.9;
+ ctx.beginPath();ctx.arc(x+23,y+23,5,0.15,Math.PI-0.15);ctx.stroke();
+
+ // sparkle
+ if(Math.floor(Date.now()/450)%2===0){
+   ctx.fillStyle='rgba(250,204,21,.8)';
+   ctx.beginPath();ctx.arc(x+48,y+14,2,0,Math.PI*2);ctx.fill();
+   ctx.beginPath();ctx.arc(x+1,y+31,1.8,0,Math.PI*2);ctx.fill();
+ }
+
+ // carried document
+ if(r.hasDoc){
+   ctx.fillStyle='#ffffff';
+   ctx.beginPath();ctx.roundRect(x+42,y+4,28,32,5);ctx.fill();
+   ctx.strokeStyle='#1f2937';ctx.lineWidth=1.5;ctx.strokeRect(x+42,y+4,28,32);
+   ctx.fillStyle='#60a5fa';ctx.fillRect(x+48,y+12,16,3);
+   ctx.fillStyle='#94a3b8';ctx.fillRect(x+48,y+19,12,3);ctx.fillRect(x+48,y+26,15,3);
+ }
+
+ ctx.restore();
+}
+
+function drawParticles(){particles.forEach(p=>{ctx.globalAlpha=p.life/55;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1})}
+
+function draw(){
+ drawOffice();npcs.forEach(drawNpc);docs.forEach(drawDoc);if(missionIndex>0)fakes.forEach(drawFake);drawParticles();drawRachel();
+ hud.innerHTML=`<b>👩 Rachel</b><br>❤️ Lives: <b>${lives}</b><br>⭐ Score: <b>${score}</b><br>⏰ Time: <b>${time}s</b><br>📌 Mission: <b>${Math.min(missionIndex+1,5)}/5</b><br>🎯 Step: <b>${phase}</b>`;
+}
+
+// ---------- Gameplay ----------
+function interact(){
+ if(gameState!=='play')return;
+ const npc=currentNpc();
+ if(phase==='talk'&&near(npc.x,npc.y,66)){
+   say(`<b>${npc.name}:</b> "${missions[missionIndex].ask}"<br><b>Rachel:</b> I will ask Copilot Chat for the trusted source.`);
+   phase='copilot';sfx('talk');return;
+ }
+ if(phase==='copilot'&&near(536,341,72)){
+   say(`<b>Copilot Chat:</b> Searching company knowledge...<br>Best trusted source: <b>${missions[missionIndex].doc}</b>. Find the glowing document!`);
+   phase='find';sfx('copilot');
+   for(let i=0;i<26;i++)particles.push({x:536,y:341,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:55,s:4,c:'#38bdf8'});
+ }
+}
+
+function completeMission(){
+ const npc=currentNpc();npc.done=true;score+=120;r.hasDoc=null;sfx('win');
+ for(let i=0;i<32;i++)particles.push({x:npc.x,y:npc.y,vx:(Math.random()-.5)*8,vy:(Math.random()-.85)*7,life:55,s:4,c:['#facc15','#22c55e','#60a5fa','#f472b6'][i%4]});
+ missionIndex++;
+ if(missionIndex>=missions.length){win();return}
+ phase='talk';say(`<b>Mission complete!</b> Great work. Talk to the next glowing employee.`);
+}
+
+function win(){
+ gameState='win';menu.style.display='flex';sfx('win');
+ menuCard.innerHTML=`<h1>🏆 Layer 1 Champion!</h1><h2>Rachel mastered Copilot Search</h2>
+ <p>Final Score: <b>${score}</b><br>You helped Rachel find trusted company knowledge using Copilot Chat.</p>
+ <button onclick="location.reload()">▶ Play Again</button><button onclick="exitGame()">🚪 Exit</button>`;
+}
+function gameOver(){
+ gameState='over';sfx('bad');menu.style.display='flex';
+ menuCard.innerHTML=`<h1>Game Over</h1><p>Time or lives ran out. Try again and avoid red fake documents.</p><button onclick="location.reload()">▶ Restart</button><button onclick="exitGame()">🚪 Exit</button>`;
+}
+
+function update(){
+ if(gameState!=='play')return;
+ let moved=false;
+ if(keys.ArrowLeft){r.x-=r.speed;moved=true} if(keys.ArrowRight){r.x+=r.speed;moved=true} if(keys.ArrowUp){r.y-=r.speed;moved=true} if(keys.ArrowDown){r.y+=r.speed;moved=true}
+ r.x=Math.max(8,Math.min(990,r.x));r.y=Math.max(12,Math.min(605,r.y));
+ if(moved&&performance.now()-lastStep>170){sfx('step');lastStep=performance.now()}
+ const now=performance.now(); if(now-lastTick>1000){time--;lastTick=now;if(time<=20&&time%5===0)tone(100,.18,'sawtooth',.05); if(time<=0)gameOver();}
+ if(phase==='find'){
+   const d=targetDoc(); if(rectHit(d)){r.hasDoc=d.name;phase='return';say(`<b>Rachel found ${d.name}!</b><br>Return it to ${currentNpc().name}.`);sfx('ok')}
+   fakes.forEach(f=>{if(rectHit(f)){lives--;score=Math.max(0,score-30);f.x=60+Math.random()*900;f.y=95+Math.random()*500;say(`<b>Oops!</b> That was a red fake document. Use trusted company knowledge only.`);sfx('bad');if(lives<=0)gameOver();}})
+ }
+ if(phase==='return'&&near(currentNpc().x,currentNpc().y,66))completeMission();
+ particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.08;p.life--});particles=particles.filter(p=>p.life>0);
+}
+function loop(){if(gameState!=='play')return;update();draw();requestAnimationFrame(loop)}
+drawOffice();drawRachel();
+</script>
+</body>
+</html>
