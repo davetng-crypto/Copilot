@@ -1,0 +1,546 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mission Control: Copilot Crisis v3</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top,#1d3766,#08101f 70%);color:#fff;overflow:hidden}
+header{height:76px;background:#101b33;border-bottom:3px solid #3b82f6;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+header h1{font-size:24px;margin:0} header p{margin:4px 0 0;color:#b8c7e6}
+#hud{display:flex;gap:12px;align-items:center;font-weight:bold}
+.badge{background:#17294d;border:1px solid #3b82f6;padding:10px 14px;border-radius:12px}
+#soundBtn{background:#1f8f54;border:1px solid #66e69b;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:bold}
+#game{position:relative;height:calc(100vh - 76px);display:grid;grid-template-columns:1fr 360px}
+#map{position:relative;margin:18px;border-radius:22px;border:3px solid #2d5ea8;background:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px),radial-gradient(circle at center,#16294c,#0a1326 75%);background-size:40px 40px,40px 40px,100% 100%;overflow:hidden}
+.department{position:absolute;width:178px;height:118px;border-radius:16px;background:#172849;border:3px solid #4b6b9e;text-align:center;box-shadow:0 12px 28px rgba(0,0,0,.35);padding-top:8px}
+.department h3{margin:0;font-size:18px}.department p{margin:4px 0 0;color:#d7e4ff;font-size:13px}
+.deptChar{font-size:36px;margin-top:3px;animation:idle 1.6s infinite ease-in-out}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.department.emergency{border-color:#ff3b3b;animation:flash .75s infinite alternate}
+.department.emergency .deptChar{animation:panic .28s infinite alternate}
+.department.complete{border-color:#2ecc71;background:#123322}
+@keyframes flash{from{box-shadow:0 0 8px #ff3b3b}to{box-shadow:0 0 30px #ff3b3b;background:#3b1720}}
+@keyframes panic{from{transform:rotate(-5deg) scale(1.05)}to{transform:rotate(5deg) scale(1.12)}}
+.speech{position:absolute;left:112px;top:-32px;width:145px;background:#fff;color:#111;border-radius:14px;padding:8px;font-size:13px;font-weight:bold;border:3px solid #ff4d4d;display:none;z-index:6}
+.speech:after{content:"";position:absolute;left:18px;bottom:-12px;border-width:12px 9px 0 9px;border-style:solid;border-color:#fff transparent transparent transparent}
+.department.emergency .speech{display:block;animation:bubble .7s infinite alternate}
+@keyframes bubble{from{transform:scale(1)}to{transform:scale(1.05)}}
+#rachel{
+  position:absolute;
+  width:50px;
+  height:78px;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  transition:left .10s linear,top .10s linear;
+  z-index:5;
+  filter:drop-shadow(0 5px 7px rgba(0,0,0,.35));
+}
+#rachel.walking{animation:rachelBounce .38s infinite alternate ease-in-out}
+@keyframes rachelBounce{
+  from{transform:translate(-50%,-50%) translateY(0)}
+  to{transform:translate(-50%,-50%) translateY(-3px)}
+}
+.face{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:#ffd7bd;
+  margin:auto;
+  border:2px solid #5a3829;
+  position:relative;
+  z-index:3;
+}
+.hair{
+  position:absolute;
+  left:-5px;
+  top:-7px;
+  width:44px;
+  height:25px;
+  background:#ff6ec7;
+  border-radius:24px 24px 10px 10px;
+  z-index:4;
+}
+.hair:before{
+  content:"";
+  position:absolute;
+  left:-2px;
+  top:16px;
+  width:12px;
+  height:30px;
+  background:#ff6ec7;
+  border-radius:10px;
+}
+.hair:after{
+  content:"";
+  position:absolute;
+  right:-2px;
+  top:16px;
+  width:12px;
+  height:30px;
+  background:#ff6ec7;
+  border-radius:10px;
+}
+.eye{
+  position:absolute;
+  top:18px;
+  width:4px;
+  height:4px;
+  background:#111;
+  border-radius:50%;
+  z-index:5;
+}
+.eye.l{left:11px}
+.eye.r{right:11px}
+.smile{
+  position:absolute;
+  left:14px;
+  top:26px;
+  width:10px;
+  height:5px;
+  border-bottom:2px solid #9b3d3d;
+  border-radius:0 0 10px 10px;
+  z-index:5;
+}
+.body{
+  width:26px;
+  height:28px;
+  margin:0 auto;
+  background:#8b5cf6;
+  border:2px solid #5b21b6;
+  border-radius:10px 10px 6px 6px;
+}
+#side{background:#0e172b;border-left:3px solid #2d5ea8;padding:18px;overflow:auto}
+#message{background:#162849;border:1px solid #3b82f6;border-radius:16px;padding:14px;min-height:170px}
+button{background:#244a83;color:white;border:1px solid #69a3ff;padding:10px 12px;margin:5px;border-radius:10px;cursor:pointer;font-weight:bold}
+button:hover{background:#356bc0}button.good{background:#1f8f54;border-color:#55e08d}
+#copilotBtn{
+  display:none;
+  font-size:16px;
+  padding:13px 18px;
+}
+#copilotBtn.ready{
+  display:inline-block;
+  animation:copilotFlash .55s infinite alternate;
+}
+@keyframes copilotFlash{
+  from{box-shadow:0 0 8px #55e08d; transform:scale(1)}
+  to{box-shadow:0 0 24px #55e08d; transform:scale(1.06)}
+}
+.prompt-part{display:inline-block;padding:9px 12px;margin:5px;border-radius:10px;border:1px solid #8ab4ff;background:#193869;cursor:pointer}
+.prompt-part.selected{background:#1f8f54;border-color:#55e08d}
+@keyframes buzz{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,8,18,.78);z-index:20}
+.modal{width:560px;max-width:90%;background:#101b33;border:3px solid #3b82f6;border-radius:22px;padding:24px;box-shadow:0 18px 60px rgba(0,0,0,.6)}
+.small{color:#b8c7e6;font-size:14px}kbd{background:#111;border:1px solid #777;border-radius:5px;padding:2px 6px}
+
+#completionScreen{
+  position:absolute;
+  pointer-events:auto;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(3,8,18,.72);
+  z-index:50;
+}
+#completionBox{
+  width:520px;
+  pointer-events:auto;
+  max-width:90%;
+  text-align:center;
+  background:linear-gradient(180deg,#14254a,#0d172e);
+  border:4px solid #55e08d;
+  border-radius:26px;
+  padding:28px;
+  box-shadow:0 0 40px rgba(85,224,141,.45);
+  animation:popIn .45s ease-out;
+}
+#completionBox h1{
+  margin:0 0 12px;
+  font-size:34px;
+  color:#9cffb8;
+}
+#completionBox p{
+  font-size:18px;
+  line-height:1.45;
+}
+#completionBox .next{
+  margin-top:16px;
+  background:#7c3aed;
+  border-radius:14px;
+  padding:12px;
+  font-weight:bold;
+}
+.endActions{
+  margin-top:18px;
+}
+.endActions button{
+  font-size:16px;
+  padding:12px 18px;
+}
+#replayBtn{
+  background:#1f8f54;
+  border-color:#55e08d;
+}
+#exitBtn{
+  background:#9b2c2c;
+  border-color:#ff8a8a;
+}
+#replayBtn,#exitBtn{
+  position:relative;
+  z-index:999;
+  cursor:pointer;
+}
+@keyframes popIn{
+  from{transform:scale(.7);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🚀 Mission Control: Copilot Crisis</h1><p>Move Rachel with arrow keys. Reach the shouting department and solve the Copilot mission.</p></div>
+  <div id="hud">
+    <button id="soundBtn" onclick="toggleSound()">🔊 Sound On</button>
+    <div class="badge">✅ Completed: <span id="score">0</span>/7</div>
+    <div class="badge">⏱️ <span id="timer">05:00</span></div>
+  </div>
+</header>
+
+<div id="game">
+  <div id="map">
+    <div id="rachel">
+      <div class="face">
+        <div class="hair"></div>
+        <div class="eye l"></div>
+        <div class="eye r"></div>
+        <div class="smile"></div>
+      </div>
+      <div class="body"></div>
+    </div></div>
+  </div>
+  <aside id="side">
+    <h2>Mission Panel</h2>
+    <div id="message">
+      <p><b>Rachel is ready.</b></p>
+      <p>Use <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> to move.</p>
+      <p>Go to the department shouting for help. Press <b>Space</b> nearby.</p>
+    </div>
+  </aside>
+</div>
+
+
+<div id="completionScreen">
+  <div id="completionBox">
+    <h1>🎉 Mission Complete!</h1>
+    <p><b>Rachel rescued all 7 departments.</b></p>
+    <p>All teams used the correct Copilot App and built the prompt in the correct order.</p>
+    <div class="next">Next Adventure: Layer 3 — Copilot Agents</div>
+    <div class="endActions">
+      <button id="replayBtn" type="button">🔁 Replay</button>
+      <button id="exitBtn" type="button">🚪 Exit</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay"><div class="modal" id="modal"></div></div>
+
+<script>
+const missions=[
+{name:"HR",char:"🧑‍💼",x:8,y:10,cry:"Help! Interviews start soon!",need:"Create a Job Description and Interview Questions",app:"Word",
+prompt:["Goal: Create a job description and interview questions.","Context: ABC Pte Ltd is hiring urgently for a department role.","Source: Use the uploaded HR documents as the primary source.","Expectations: Include responsibilities, qualifications, questions and evaluation notes."]},
+{name:"Finance",char:"👩‍💼",x:39,y:7,cry:"Help! Expenses jumped!",need:"Analyse why expenses increased by 15%",app:"Excel",
+prompt:["Goal: Analyse this month's financial performance.","Context: Operating expenses are 15% higher than last month.","Source: Use the uploaded finance spreadsheet.","Expectations: Identify key reasons, trends, risks and recommendations."]},
+{name:"Sales",char:"🧑‍🚀",x:70,y:10,cry:"Help! Meeting starts now!",need:"Create a customer sales presentation",app:"PowerPoint",
+prompt:["Goal: Create a sales presentation for a customer meeting.","Context: The customer wants to improve productivity and reporting.","Source: Use the uploaded sales documents.","Expectations: Include challenges, solution, benefits, pricing and next steps."]},
+{name:"Marketing",char:"👩‍🎨",x:8,y:42,cry:"Help! Launch is tomorrow!",need:"Create a product launch proposal",app:"Word",
+prompt:["Goal: Create a product launch proposal.","Context: ABC Pte Ltd is launching Spark+ Energy Drink.","Source: Use the uploaded marketing documents.","Expectations: Include objectives, audience, channels, timeline, KPIs and risks."]},
+{name:"Operations",char:"👷",x:70,y:42,cry:"Help! We need a process!",need:"Create an SOP",app:"Word",
+prompt:["Goal: Create an operations SOP.","Context: The team needs a clear repeatable process.","Source: Use the uploaded operations documents.","Expectations: Include steps, roles, quality checks, escalation and safety notes."]},
+{name:"IT",char:"🧑‍💻",x:22,y:73,cry:"Help! System outage!",need:"Prepare an incident summary",app:"Word",
+prompt:["Goal: Prepare an IT incident summary.","Context: There was a system outage affecting users.","Source: Use the uploaded IT incident notes.","Expectations: Include impact, root cause, actions taken, prevention and follow-up."]},
+{name:"Executive",char:"👔",x:56,y:73,cry:"Help! CEO needs answers!",need:"Create an executive briefing",app:"Word",
+prompt:["Goal: Create a one-page executive briefing.","Context: The CEO needs a clear summary for decision-making.","Source: Use all shared resources.","Expectations: Include highlights, risks, opportunities, recommendations and next steps."]}
+];
+
+const apps=["Word","Excel","PowerPoint","Outlook"];
+const map=document.getElementById("map"), rachel=document.getElementById("rachel"), message=document.getElementById("message"), overlay=document.getElementById("overlay"), modal=document.getElementById("modal");
+let rx=50,ry=50,speed=1.25,current=0,completed=0,activeModal=false,selectedPrompt=[],promptStep=0,keys={},sec=300,gameEnded=false;
+let soundOn=true,audioCtx=null,alarmTimer=null,musicTimer=null,musicStep=0;
+
+function initAudio(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+}
+function beep(freq=600,dur=.12,type="sine",vol=.08){
+  if(!soundOn) return;
+  initAudio();
+  const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+  osc.type=type;
+  osc.frequency.value=freq;
+  gain.gain.setValueAtTime(vol,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+dur);
+}
+function alarm(){
+  beep(880,.09,"square",.055);
+  setTimeout(()=>beep(660,.09,"square",.05),110);
+  setTimeout(()=>beep(440,.16,"square",.05),230);
+}
+function clickSound(){beep(720,.045,"triangle",.035)}
+function successSound(){
+  beep(523,.09,"sine",.065);
+  setTimeout(()=>beep(659,.09,"sine",.065),105);
+  setTimeout(()=>beep(784,.10,"sine",.065),210);
+  setTimeout(()=>beep(1046,.18,"sine",.07),330);
+}
+function wrongSound(){
+  beep(180,.08,"sawtooth",.07);
+  setTimeout(()=>beep(130,.16,"sawtooth",.07),95);
+}
+function fanfareSound(){
+  const notes=[523,659,784,1046,784,1046];
+  notes.forEach((n,i)=>setTimeout(()=>beep(n,.13,"triangle",.07),i*120));
+}
+function musicNote(freq,dur=.18,vol=.026){
+  if(!soundOn) return;
+  initAudio();
+  const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+  osc.type="triangle";
+  osc.frequency.value=freq;
+  gain.gain.setValueAtTime(vol,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+dur);
+}
+function startMusic(){
+  if(musicTimer) return;
+  const notes=[392,494,587,659,587,494,440,523,392,523,659,784];
+  musicTimer=
+
+
+function replayGame(){
+  window.location.reload();
+}
+
+function exitGame(){
+  try{ stopMusic(); }catch(e){}
+  try{ clearInterval(alarmTimer); }catch(e){}
+  document.body.innerHTML = `
+    <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#08101f;color:white;font-family:Arial;text-align:center;">
+      <div style="background:#101b33;border:3px solid #3b82f6;border-radius:24px;padding:32px;max-width:520px;">
+        <h1>👋 Game Closed</h1>
+        <p>Mission Control has ended.</p>
+        <p>You may close this browser tab now.</p>
+        <button id="playAgainFinal" style="margin-top:14px;padding:12px 18px;border-radius:10px;border:1px solid #55e08d;background:#1f8f54;color:white;font-weight:bold;cursor:pointer;">Play Again</button>
+      </div>
+    </div>`;
+  const playAgainFinal=document.getElementById("playAgainFinal");
+  if(playAgainFinal){
+    playAgainFinal.addEventListener("click",()=>window.location.reload());
+  }
+}
+
+document.addEventListener("click", function(e){
+  if(e.target && e.target.id==="replayBtn"){
+    e.preventDefault();
+    replayGame();
+  }
+  if(e.target && e.target.id==="exitBtn"){
+    e.preventDefault();
+    exitGame();
+  }
+});
+
+setInterval(()=>{
+    if(!soundOn || activeModal || completed===missions.length) return;
+    musicNote(notes[musicStep%notes.length],.2,.024);
+    if(musicStep%4===0) setTimeout(()=>musicNote(notes[(musicStep+2)%notes.length]/2,.22,.016),120);
+    musicStep++;
+  },360);
+}
+function stopMusic(){
+  clearInterval(musicTimer);
+  musicTimer=null;
+}
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById("soundBtn").textContent=soundOn?"🔊 Sound On":"🔇 Sound Off";
+  if(soundOn){initAudio(); beep(600,.08); startMusic()} else {stopMusic()}
+}
+
+missions.forEach((m,i)=>{
+  const d=document.createElement("div");
+  d.className="department"; d.id="dept-"+i; d.style.left=m.x+"%"; d.style.top=m.y+"%";
+  d.innerHTML=`<div class="speech">${m.cry}</div><h3>${m.name}</h3><div class="deptChar">${m.char}</div><p>Standby</p>`;
+  map.appendChild(d);
+});
+
+function setEmergency(){
+  document.querySelectorAll(".department").forEach(d=>d.classList.remove("emergency"));
+  clearInterval(alarmTimer);
+  if(!gameEnded && current<missions.length){
+    const d=document.getElementById("dept-"+current), m=missions[current];
+    d.classList.add("emergency"); d.querySelector("p").textContent="🔴 Emergency";
+    message.innerHTML=`<p><b>${m.name} is shouting for help!</b></p><p>"${m.cry}"</p><p>${m.need}</p><p class="small">Move Rachel there and press <b>Space</b>.</p>`;
+    alarm(); alarmTimer=setInterval(()=>{if(!activeModal) alarm()},2600);
+  }
+}
+setEmergency();
+
+function move(){
+  if(!activeModal){
+    if(keys.ArrowLeft) rx-=speed; if(keys.ArrowRight) rx+=speed; if(keys.ArrowUp) ry-=speed; if(keys.ArrowDown) ry+=speed;
+    rx=Math.max(3,Math.min(96,rx)); ry=Math.max(5,Math.min(92,ry));
+    rachel.style.left=rx+"%"; rachel.style.top=ry+"%";
+    if(keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown){rachel.classList.add("walking")}else{rachel.classList.remove("walking")}
+  }
+  if(!gameEnded && document.querySelectorAll('.department.complete').length>=missions.length){endGame();}
+  checkForGameEnd();
+  requestAnimationFrame(move);
+}
+move();
+
+document.addEventListener("keydown",e=>{initAudio();startMusic();keys[e.key]=true;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();if(e.key===" "){tryInteract();}});
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+function distanceToMission(){const m=missions[current];return Math.hypot(rx-(m.x+8),ry-(m.y+7));}
+function tryInteract(){
+  if(activeModal||current>=missions.length)return;
+  if(distanceToMission()<13){beep(500,.08);openChallenge();}
+  else{wrongSound();message.innerHTML+=`<p style="color:#ffb4b4">Rachel is not close enough yet.</p>`;}
+}
+function openChallenge(){
+  activeModal=true; selectedPrompt=[]; promptStep=0; clearInterval(alarmTimer);
+  const m=missions[current]; overlay.style.display="flex";
+  modal.innerHTML=`<h2>${m.char} ${m.name} Mission</h2><p><b>Department says:</b> "${m.cry}"</p><p><b>Emergency:</b> ${m.need}</p><p><b>Step 1:</b> Which Copilot App should Rachel use?</p>`+
+  apps.map(a=>`<button onclick="checkApp('${a}')">${a}</button>`).join("")+
+  `<p class="small">Choose carefully. Wrong choices reduce your mission rating.</p>`;
+}
+window.checkApp=function(choice){
+  const m=missions[current];
+  clickSound(); if(choice!==m.app){wrongSound();modal.innerHTML+=`<p style="color:#ff9b9b">❌ ${choice} is not the best app for this task. Try again.</p>`;return;}
+  beep(700,.1);
+  let html=`<h2>✅ Correct App: ${m.app}</h2>
+  <p><b>Step 2:</b> Build the prompt in the correct order.</p>
+  <p class="small">Select: <b>Goal → Context → Source → Expectations</b>. Wrong order creates a buzz.</p>`;
+  const parts=[
+    {label:"Goal",text:m.prompt[0],step:0},
+    {label:"Context",text:m.prompt[1],step:1},
+    {label:"Source",text:m.prompt[2],step:2},
+    {label:"Expectations",text:m.prompt[3],step:3}
+  ].sort(()=>Math.random()-0.5);
+  parts.forEach(p=>{html+=`<div class="prompt-part" data-step="${p.step}" onclick="selectPrompt(this)"><b>${p.label}</b><br>${p.text}</div>`});
+  html+=`<p id="promptHint" class="small">Select all 4 in order. Copilot button will appear after that.</p>`;
+  html+=`<br><button id="copilotBtn" class="good" onclick="finishMission()">✨ Generate with Copilot</button>`;
+  modal.innerHTML=html;
+}
+window.selectPrompt=function(el){
+  if(el.classList.contains("selected"))return;
+  clickSound();
+  const step=parseInt(el.getAttribute("data-step"));
+  if(step!==promptStep){
+    wrongSound();
+    el.style.animation="buzz .18s 2";
+    setTimeout(()=>{el.style.animation=""},420);
+    return;
+  }
+  el.classList.add("selected");
+  selectedPrompt.push(el.textContent);
+  promptStep++;
+  beep(620,.05);
+  const order=["Goal","Context","Source","Expectations"];
+  const hint=document.getElementById("promptHint");
+  if(promptStep<4 && hint){
+    hint.innerHTML="Good. Next select: <b>"+order[promptStep]+"</b>";
+  }
+  if(promptStep===4){
+    successSound();
+    const btn=document.getElementById("copilotBtn");
+    if(btn){btn.classList.add("ready");}
+    if(hint){hint.innerHTML="<b>All prompt parts are correct.</b> Click the flashing Copilot button.";}
+  }
+}
+
+
+function checkForGameEnd(){
+  if(gameEnded) return;
+  const completeCount=document.querySelectorAll(".department.complete").length;
+  if(completeCount>=missions.length || completed>=missions.length){
+    endGame();
+  }
+}
+
+function endGame(){
+  if(gameEnded) return;
+  gameEnded=true;
+  completed=missions.length;
+  current=missions.length;
+  document.getElementById("score").textContent=completed;
+  clearInterval(alarmTimer);
+  stopMusic();
+  document.querySelectorAll(".department").forEach(d=>d.classList.remove("emergency"));
+  overlay.style.display="none";
+  activeModal=false;
+  fanfareSound();
+
+  const completionScreen=document.getElementById("completionScreen");
+  if(completionScreen){completionScreen.style.display="flex";}
+  setTimeout(()=>{
+    const rb=document.getElementById("replayBtn");
+    const eb=document.getElementById("exitBtn");
+    if(rb){rb.onclick=replayGame;}
+    if(eb){eb.onclick=exitGame;}
+  },50);
+
+  message.innerHTML=`<h2>🎉 Mission Complete!</h2>
+    <p>Rachel rescued all seven departments.</p>
+    <p><b>Next Adventure:</b> Layer 3 - Copilot Agents.</p>`;
+}
+window.finishMission=function(){
+  if(promptStep<4 || selectedPrompt.length<4){
+    wrongSound();
+    const hint=document.getElementById("promptHint");
+    if(hint){hint.innerHTML="<b>Select Goal → Context → Source → Expectations first.</b>";}
+    return;
+  }
+
+  successSound();
+
+  const d=document.getElementById("dept-"+current);
+  if(d){
+    d.classList.remove("emergency");
+    d.classList.add("complete");
+    d.querySelector("p").textContent="🟢 Completed";
+    const speech=d.querySelector(".speech");
+    if(speech){speech.textContent="Thank you, Rachel!";}
+  }
+
+  completed = document.querySelectorAll(".department.complete").length;
+  document.getElementById("score").textContent=completed;
+  current = completed;
+
+  overlay.style.display="none";
+  activeModal=false;
+
+  if(completed >= missions.length){
+    endGame();
+    return;
+  }
+
+  setEmergency();
+  checkForGameEnd();
+}
+setInterval(()=>{
+  if(gameEnded||completed>=missions.length||current>=missions.length||activeModal){checkForGameEnd();return;}
+  sec--; const m=Math.floor(sec/60).toString().padStart(2,"0"),s=(sec%60).toString().padStart(2,"0");
+  document.getElementById("timer").textContent=`${m}:${s}`;
+  if(sec<=0){clearInterval(alarmTimer); stopMusic(); message.innerHTML=`<h2>⏰ Time's Up!</h2><p>The CEO arrived before all departments were rescued.</p>`;}
+},1000);
+</script>
+</body>
+</html>
