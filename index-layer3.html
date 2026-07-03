@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Layer 3 - Break The Habit</title>
+<style>
+  :root{
+    --bg:#142338;--panel:#ffffff;--ink:#172033;--accent:#ffca3a;--good:#20c997;--bad:#ff4d6d;--blue:#4dabf7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#101827;color:white;overflow:hidden;user-select:none}
+  #game{position:relative;width:100vw;height:100vh;background:linear-gradient(180deg,#182842,#29405f);overflow:hidden}
+  #officeFloor{position:absolute;inset:76px 0 0 0;background:
+    linear-gradient(90deg,rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(180deg,#2f4d70,#21354e);background-size:80px 80px,80px 80px,100% 100%;}
+  #hud{position:absolute;top:0;left:0;right:0;height:76px;background:rgba(5,12,23,.92);display:flex;align-items:center;justify-content:space-between;padding:10px 22px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+  .hudBox{font-size:18px;line-height:1.3}.hudBox b{color:#ffda6a}.title{font-weight:900;font-size:26px;letter-spacing:.5px}.subtitle{font-size:13px;color:#b9c9dc;margin-top:3px}
+  #status{position:absolute;top:88px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:9px 18px;font-weight:bold;z-index:12;box-shadow:0 5px 20px rgba(0,0,0,.25)}
+  .dept{position:absolute;width:130px;height:118px;border-radius:18px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:.25s;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+  .dept .avatar{font-size:43px;margin-bottom:3px}.dept .name{font-weight:bold;font-size:16px}.dept .need{font-size:14px;color:#ffeb70;font-weight:900;margin-top:3px;display:none}.dept.done{background:rgba(24,180,122,.25);border-color:rgba(32,201,151,.8);filter:saturate(1.2)}
+  .dept.done .need{display:block;color:#80ffbf}.dept.active{animation:pulseDept .55s infinite alternate;border-color:#ffda6a;background:rgba(255,202,58,.22);transform:scale(1.08);z-index:9}.dept.active .need{display:block;animation:blinkText .35s infinite alternate}
+  @keyframes pulseDept{from{box-shadow:0 0 10px #ff4d6d,0 0 8px #ffca3a}to{box-shadow:0 0 30px #ff4d6d,0 0 38px #ffca3a}}
+  @keyframes blinkText{from{opacity:.45}to{opacity:1}}
+  #rachel{position:absolute;width:74px;height:88px;left:50%;top:54%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 6px 7px rgba(0,0,0,.35))}
+  .rBody{position:relative;width:56px;height:76px}.hair{position:absolute;left:9px;top:2px;width:39px;height:39px;background:#ff66b3;border-radius:50% 50% 46% 46%;box-shadow:-7px 8px 0 #ff66b3,7px 7px 0 #ff66b3}.face{position:absolute;left:13px;top:14px;width:31px;height:31px;background:#ffd6b0;border-radius:50%;z-index:2}.eye{position:absolute;top:10px;width:4px;height:4px;background:#222;border-radius:50%;z-index:3}.eye.l{left:9px}.eye.r{right:9px}.smile{position:absolute;left:10px;top:19px;width:12px;height:7px;border-bottom:2px solid #222;border-radius:0 0 15px 15px;z-index:3}.torso{position:absolute;left:13px;top:43px;width:31px;height:30px;background:#6c63ff;border-radius:12px 12px 8px 8px}.leg{position:absolute;top:70px;width:10px;height:18px;background:#243b55;border-radius:6px}.leg.l{left:15px}.leg.r{right:15px}.walk .leg.l{animation:legL .22s infinite alternate}.walk .leg.r{animation:legR .22s infinite alternate}@keyframes legL{to{transform:translateY(-4px)}}@keyframes legR{to{transform:translateY(4px)}}
+  .bubble{position:absolute;min-width:135px;max-width:170px;background:white;color:#111;border-radius:14px;padding:9px 12px;text-align:center;font-weight:bold;z-index:15;box-shadow:0 8px 18px rgba(0,0,0,.3);display:none}.bubble:after{content:"";position:absolute;bottom:-10px;left:42%;border-width:10px 10px 0 10px;border-style:solid;border-color:white transparent transparent transparent}
+  #promptPanel,#startScreen,#endScreen,#boardRoom,#transitionScreen{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(5,9,18,.78)}
+  .card{background:#fff;color:#172033;border-radius:22px;padding:28px;max-width:760px;width:min(92vw,760px);text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.45);border:5px solid rgba(255,218,106,.9)}
+  .card h1{margin:0 0 8px;font-size:42px}.card h2{margin:0 0 12px;font-size:28px}.card p{font-size:18px;line-height:1.45}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.choice{border:0;border-radius:16px;padding:18px;font-size:22px;font-weight:900;cursor:pointer;background:#e9eef7;color:#152338;box-shadow:0 6px 0 #b7c1d2;transition:.1s}.choice:hover{transform:translateY(-2px);background:#fff0b8}.choice:active{transform:translateY(4px);box-shadow:0 2px 0 #b7c1d2}.choice.goal{background:#dbfff0}.btn{border:0;border-radius:14px;padding:14px 24px;font-size:20px;font-weight:900;cursor:pointer;background:#ffca3a;color:#172033;box-shadow:0 6px 0 #bb8d00;margin:8px}.btn.secondary{background:#dbe4f0;box-shadow:0 6px 0 #9caec4}.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #bb8d00}
+  .shake{animation:shake .22s}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-14px)}75%{transform:translateX(14px)}}
+  .toast{position:absolute;top:100px;right:24px;padding:12px 18px;border-radius:14px;font-weight:900;z-index:60;display:none;box-shadow:0 10px 28px rgba(0,0,0,.3)}.toast.good{background:#20c997}.toast.bad{background:#ff4d6d}
+  #transitionScreen{flex-direction:column;text-align:center;background:#02050b}.bigFlash{font-size:58px;font-weight:900;animation:flashBig .7s infinite alternate}.door{font-size:92px;animation:doorPulse 1s infinite alternate}@keyframes flashBig{from{color:white}to{color:#ffca3a}}@keyframes doorPulse{to{transform:scale(1.12)}}
+  #boardRoom{background:radial-gradient(circle at center,#38445e,#101827 70%);flex-direction:column}.boardScene{position:absolute;inset:0;background:linear-gradient(180deg,#202b43,#111827)}.table{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);width:70vw;height:160px;background:#62422a;border-radius:50%;box-shadow:0 30px 40px rgba(0,0,0,.35)}.screen{position:absolute;left:50%;top:16%;transform:translateX(-50%);width:54vw;height:120px;border-radius:12px;background:#101827;border:4px solid #dbe4f0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#ffda6a}.ceo{position:absolute;left:50%;top:37%;transform:translateX(-50%);font-size:70px;z-index:3}.boardMember{position:absolute;font-size:44px;top:52%;z-index:3}.bm1{left:20%}.bm2{left:30%;top:67%}.bm3{right:20%}.bm4{right:30%;top:67%}.boardCard{z-index:8;background:#fff;color:#172033;border-radius:22px;padding:24px;max-width:720px;width:min(90vw,720px);text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.45);border:5px solid #ffca3a;margin-top:260px}.countdown{font-size:54px;font-weight:900;color:#ff4d6d;margin:5px 0}.hidden{display:none!important}
+  .confetti{position:absolute;width:10px;height:18px;background:#ffca3a;animation:fall 2.5s linear forwards;z-index:90}@keyframes fall{to{transform:translateY(105vh) rotate(680deg);opacity:.25}}
+  .rank{font-size:72px;font-weight:900;color:#ffca3a;text-shadow:0 4px 0 #885f00}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px auto;max-width:560px}.stat{background:#eef3fa;border-radius:12px;padding:11px;font-size:18px}.stat b{display:block;font-size:24px;color:#172033}
+  @media(max-width:700px){.dept{width:105px;height:98px}.dept .avatar{font-size:34px}.choices{grid-template-columns:1fr}.title{font-size:20px}.hudBox{font-size:14px}.card h1{font-size:32px}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="officeFloor"></div>
+  <div id="hud">
+    <div><div class="title">Layer 3: Break The Habit</div><div class="subtitle">With an Agent, click only the Goal.</div></div>
+    <div class="hudBox">⭐ Score: <b id="score">0</b><br>🔥 Combo: <b id="combo">0</b></div>
+    <div class="hudBox">⏱ Time: <b id="timer">0.0s</b><br>❌ Wrong: <b id="wrong">0</b></div>
+  </div>
+  <div id="status">Press Start to begin</div>
+  <div id="bubble" class="bubble">Rachel! Help!</div>
+
+  <div id="dept-HR" class="dept" style="left:7%;top:18%"><div class="avatar">👩‍💼</div><div class="name">HR</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-Finance" class="dept" style="left:31%;top:18%"><div class="avatar">👨‍💼</div><div class="name">Finance</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-Sales" class="dept" style="right:31%;top:18%"><div class="avatar">👩‍💻</div><div class="name">Sales</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-Marketing" class="dept" style="right:7%;top:18%"><div class="avatar">🧑‍🎨</div><div class="name">Marketing</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-Operations" class="dept" style="left:14%;bottom:11%"><div class="avatar">👷‍♀️</div><div class="name">Operations</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-IT" class="dept" style="left:45%;bottom:8%"><div class="avatar">👨‍🔧</div><div class="name">IT</div><div class="need">🚨 HELP!</div></div>
+  <div id="dept-Social" class="dept" style="right:14%;bottom:11%"><div class="avatar">👩‍🎤</div><div class="name">Social Media</div><div class="need">🚨 HELP!</div></div>
+
+  <div id="rachel"><div class="rBody"><div class="hair"></div><div class="face"><div class="eye l"></div><div class="eye r"></div><div class="smile"></div></div><div class="torso"></div><div class="leg l"></div><div class="leg r"></div></div></div>
+  <div id="toast" class="toast"></div>
+
+  <div id="startScreen" style="display:flex">
+    <div class="card">
+      <h1>🎮 Break The Habit</h1>
+      <h2>Layer 3: Business Advisor Agent</h2>
+      <p>In Layer 2, Rachel clicked four steps: <b>Goal, Context, Source, Expectations</b>.</p>
+      <p>Now the Agent already knows the context, sources and expectations. Help each department by selecting <b>Goal only</b>.</p>
+      <p><b>Controls:</b> Arrow Keys to move. Space to talk.</p>
+      <button class="btn" onclick="startGame()">Start Game</button>
+    </div>
+  </div>
+
+  <div id="promptPanel">
+    <div class="card" id="promptCard">
+      <h2 id="promptTitle">Department needs help</h2>
+      <p id="promptText"></p>
+      <p><b>Which step should Rachel give to the Agent?</b></p>
+      <div class="choices" id="choices"></div>
+    </div>
+  </div>
+
+  <div id="transitionScreen">
+    <div class="bigFlash">🚨 ALL DEPARTMENTS HELPED 🚨</div>
+    <div class="door">🚪</div>
+    <h1>Entering the Board Room...</h1>
+  </div>
+
+  <div id="boardRoom">
+    <div class="boardScene"></div>
+    <div class="screen" id="boardScreen">BOARD MEETING</div>
+    <div class="ceo">👴</div>
+    <div class="boardMember bm1">🧑‍💼</div><div class="boardMember bm2">👩‍💼</div><div class="boardMember bm3">👨‍💼</div><div class="boardMember bm4">👩‍💻</div>
+    <div class="table"></div>
+    <div class="boardCard" id="boardCard">
+      <h2>Final Stage: The CEO Needs Help</h2>
+      <div class="countdown" id="countdown">10</div>
+      <p id="boardText">Board Meeting starts soon...</p>
+      <div class="choices hidden" id="boardChoices"></div>
+    </div>
+  </div>
+
+  <div id="endScreen">
+    <div class="card">
+      <h1>🏆 Business Advisor Certified</h1>
+      <div class="rank" id="rank">S</div>
+      <div class="stats">
+        <div class="stat">Score<b id="finalScore">0</b></div>
+        <div class="stat">Completion Time<b id="finalTime">0s</b></div>
+        <div class="stat">Accuracy<b id="accuracy">100%</b></div>
+        <div class="stat">Best Combo<b id="bestCombo">0</b></div>
+        <div class="stat">Wrong Clicks<b id="finalWrong">0</b></div>
+        <div class="stat">Departments Helped<b>7 / 7</b></div>
+      </div>
+      <button class="btn" onclick="location.reload()">Replay</button>
+      <button class="btn secondary" onclick="exitGame()">Exit</button>
+    </div>
+  </div>
+</div>
+<script>
+const departments=[
+ {key:'HR',task:'Create a hiring recommendation for the new role.'},
+ {key:'Finance',task:'Analyse why operating expenses increased this month.'},
+ {key:'Sales',task:'Recommend actions to improve next quarter sales.'},
+ {key:'Marketing',task:'Recommend improvements for the product launch campaign.'},
+ {key:'Operations',task:'Identify the best action to reduce delivery delays.'},
+ {key:'IT',task:'Recommend preventive actions for recurring IT incidents.'},
+ {key:'Social',task:'Recommend next week\'s social media content strategy.'}
+];
+let order=[],current=0,active=null,score=0,combo=0,bestCombo=0,wrong=0,totalClicks=0,startTime=null,gameOn=false,panelOpen=false,boardMode=false;
+let rx=window.innerWidth*0.5-37, ry=window.innerHeight*0.54-44, speed=8, keys={};
+let audioCtx=null, musicTimer=null, helpTimer=null, tickTimer=null;
+const rachel=document.getElementById('rachel'), bubble=document.getElementById('bubble'), toast=document.getElementById('toast');
+function initAudio(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }
+function tone(freq,dur,vol=0.35,type='sine'){ if(!audioCtx) return; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur); o.stop(audioCtx.currentTime+dur); }
+function chord(){tone(880,.12,.45,'triangle');setTimeout(()=>tone(1175,.16,.42,'triangle'),80);setTimeout(()=>tone(1568,.18,.38,'triangle'),150)}
+function buzz(){tone(130,.32,.75,'sawtooth');setTimeout(()=>tone(90,.24,.65,'sawtooth'),110)}
+function helpCall(){tone(680,.08,.55,'square');setTimeout(()=>tone(900,.09,.50,'square'),120)}
+function startMusic(){stopMusic(); musicTimer=setInterval(()=>{ if(boardMode){tone(220,.08,.12,'triangle'); setTimeout(()=>tone(330,.08,.10,'triangle'),160);} else {tone(392,.07,.10,'triangle');setTimeout(()=>tone(523,.07,.09,'triangle'),190);setTimeout(()=>tone(659,.07,.08,'triangle'),380);} },720);}
+function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function startGame(){initAudio();document.getElementById('startScreen').style.display='none';gameOn=true;startTime=Date.now();order=shuffle([...departments]);startMusic();nextDepartment();requestAnimationFrame(loop)}
+function updateHud(){document.getElementById('score').textContent=score;document.getElementById('combo').textContent=combo;document.getElementById('wrong').textContent=wrong; if(startTime&&!document.getElementById('endScreen').style.display.includes('flex')) document.getElementById('timer').textContent=((Date.now()-startTime)/1000).toFixed(1)+'s'}
+function nextDepartment(){clearInterval(helpTimer); if(current>=order.length){goBoardRoom();return} active=order[current]; document.querySelectorAll('.dept').forEach(d=>d.classList.remove('active')); const el=document.getElementById('dept-'+active.key); el.classList.add('active'); document.getElementById('status').textContent=active.key+' needs help. Move to the flashing character and press Space.'; positionBubble(el,'Rachel! Help!'); helpCall(); helpTimer=setInterval(()=>{if(!panelOpen&&!boardMode){helpCall(); const words=['Rachel! Help!','Over here!','Need Agent help!','Only one Goal!']; positionBubble(el,words[Math.floor(Math.random()*words.length)]);}},2600);}
+function positionBubble(el,text){const rect=el.getBoundingClientRect();bubble.textContent=text;bubble.style.left=(rect.left+rect.width/2-70)+'px';bubble.style.top=(rect.top-45)+'px';bubble.style.display='block'}
+function openPrompt(){ if(!active||panelOpen) return; const el=document.getElementById('dept-'+active.key); const rr=rachel.getBoundingClientRect(), er=el.getBoundingClientRect(); const dist=Math.hypot((rr.left+37)-(er.left+65),(rr.top+44)-(er.top+59)); if(dist>135){showToast('Move closer to '+active.key,'bad'); buzz(); return} panelOpen=true; bubble.style.display='none'; el.classList.remove('active'); document.getElementById('promptPanel').style.display='flex'; document.getElementById('promptTitle').textContent=active.key+' needs the Business Advisor Agent'; document.getElementById('promptText').textContent=active.task; renderChoices('choices',handleChoice);}
+function renderChoices(containerId,handler){const arr=shuffle(['Goal','Context','Source','Expectations']); const c=document.getElementById(containerId); c.innerHTML=''; arr.forEach(label=>{const b=document.createElement('button');b.className='choice'+(label==='Goal'?' goal':'');b.textContent=label;b.onclick=()=>handler(label);c.appendChild(b)});}
+function handleChoice(label){totalClicks++; if(label==='Goal'){score+=100+(combo*25); combo++; bestCombo=Math.max(bestCombo,combo); chord(); showToast('Correct! The Agent only needs the Goal.','good'); document.getElementById('dept-'+active.key).classList.add('done'); document.querySelector('#dept-'+active.key+' .need').textContent='✅ DONE'; document.getElementById('promptPanel').style.display='none'; panelOpen=false; current++; setTimeout(nextDepartment,550);} else {wrong++;score=Math.max(0,score-30);combo=0;buzz();document.getElementById('promptCard').classList.add('shake');setTimeout(()=>document.getElementById('promptCard').classList.remove('shake'),240); const msg={Context:'Old habit! The Agent already knows the context.',Source:'Old habit! The Agent already has the connected sources.',Expectations:'Old habit! The Agent already knows the expected output.'}[label]||'Old habit!';showToast(msg,'bad')} updateHud();}
+function showToast(msg,type){toast.className='toast '+type;toast.textContent=msg;toast.style.display='block';setTimeout(()=>toast.style.display='none',1300)}
+function goBoardRoom(){clearInterval(helpTimer); bubble.style.display='none'; document.querySelectorAll('.dept').forEach(d=>d.classList.remove('active')); gameOn=false; boardMode=true; document.getElementById('status').textContent='All departments helped. Board Room unlocked.'; stopMusic(); document.getElementById('transitionScreen').style.display='flex'; tone(260,.25,.55,'sawtooth'); setTimeout(()=>tone(520,.35,.55,'triangle'),300); setTimeout(()=>{document.getElementById('transitionScreen').style.display='none';startBoardRoom();},2500)}
+function startBoardRoom(){document.getElementById('boardRoom').style.display='flex';startMusic(); let n=10; const cd=document.getElementById('countdown'), txt=document.getElementById('boardText'); cd.textContent=n; txt.textContent='Board Meeting starts soon...'; tickTimer=setInterval(()=>{tone(520,.08,.35,'square'); n--; cd.textContent=n; if(n<=0){clearInterval(tickTimer);cd.textContent='NOW';document.getElementById('boardScreen').textContent='CEO: WHAT IS YOUR RECOMMENDATION?';txt.textContent='The CEO needs tomorrow\'s Executive Report. Which step should Rachel give the Agent?';document.getElementById('boardChoices').classList.remove('hidden');renderChoices('boardChoices',handleBoardChoice)}},1000)}
+function handleBoardChoice(label){totalClicks++; if(label==='Goal'){score+=1000+(combo*50);combo++;bestCombo=Math.max(bestCombo,combo);chord();finishGame()} else {wrong++;score=Math.max(0,score-100);combo=0;buzz();showToast('Final old habit! The Board Room Agent needs Goal only.','bad');updateHud()}}
+function finishGame(){stopMusic(); document.getElementById('boardRoom').style.display='none'; document.getElementById('endScreen').style.display='flex'; const seconds=(Date.now()-startTime)/1000; const acc=Math.round(((totalClicks-wrong)/Math.max(1,totalClicks))*100); let rank='C'; if(acc>=95&&wrong<=1)rank='S+'; else if(acc>=90)rank='S'; else if(acc>=80)rank='A'; else if(acc>=70)rank='B'; document.getElementById('rank').textContent=rank; document.getElementById('finalScore').textContent=score; document.getElementById('finalTime').textContent=formatTime(seconds); document.getElementById('accuracy').textContent=acc+'%'; document.getElementById('bestCombo').textContent=bestCombo; document.getElementById('finalWrong').textContent=wrong; updateHud(); for(let i=0;i<120;i++)setTimeout(confetti,Math.random()*1200); setTimeout(()=>{tone(660,.15,.4);tone(880,.2,.35);setTimeout(()=>tone(1320,.3,.35),180)},150)}
+function formatTime(sec){const m=Math.floor(sec/60),s=(sec%60).toFixed(1).padStart(4,'0');return m+':'+s}
+function confetti(){const c=document.createElement('div');c.className='confetti';c.style.left=Math.random()*100+'vw';c.style.top='-20px';c.style.background=['#ffca3a','#ff4d6d','#4dabf7','#20c997','#ffffff'][Math.floor(Math.random()*5)];c.style.animationDuration=(1.8+Math.random()*1.6)+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),3500)}
+function exitGame(){document.body.innerHTML='<div style="height:100vh;background:#101827;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Arial"><h1>Game Closed</h1><p>You may close this browser tab.</p></div>'}
+window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.code==='Space'){if(!gameOn&&!boardMode&&document.getElementById('startScreen').style.display==='flex')startGame(); else if(gameOn&&!panelOpen)openPrompt();}});
+window.addEventListener('keyup',e=>{keys[e.key]=false});
+function loop(){ if(gameOn&&!panelOpen){let moved=false;if(keys.ArrowLeft){rx-=speed;moved=true}if(keys.ArrowRight){rx+=speed;moved=true}if(keys.ArrowUp){ry-=speed;moved=true}if(keys.ArrowDown){ry+=speed;moved=true}rx=Math.max(0,Math.min(window.innerWidth-74,rx));ry=Math.max(82,Math.min(window.innerHeight-88,ry));rachel.style.left=rx+'px';rachel.style.top=ry+'px';rachel.style.transform='none';rachel.classList.toggle('walk',moved)} updateHud(); if(gameOn)requestAnimationFrame(loop)}
+</script>
+</body>
+</html>
