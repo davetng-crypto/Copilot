@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Copilot Studio Agent Builder Simulation - IT Advisor</title>
+<style>
+  :root{
+    --bg:#f6f8fb;--panel:#fff;--line:#d9dee8;--text:#1f2328;--muted:#667085;
+    --blue:#0f6cbd;--blue2:#115ea3;--green:#107c10;--shadow:0 2px 8px rgba(0,0,0,.08)
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  button,input,textarea,select{font:inherit}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:16px;position:sticky;top:0;z-index:10}
+  .waffle{font-size:24px;letter-spacing:2px}.logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#06b6d4,#22c55e)}
+  .brand{font-size:22px;font-weight:650}.spacer{flex:1}.env{font-size:14px;color:#344054}.avatar{width:38px;height:38px;border:1px solid #222;border-radius:50%;display:grid;place-items:center}
+  .layout{display:grid;grid-template-columns:74px 1fr;min-height:calc(100vh - 64px)}
+  .sidebar{background:#fff;border-right:1px solid var(--line);padding-top:12px}.navitem{height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#333;cursor:pointer;border-left:3px solid transparent;font-size:12px}.navitem .ico{font-size:23px}.navitem.active{background:#eef6ff;border-left-color:var(--blue);color:var(--blue)}
+  .main{padding:26px 30px 50px}.page{display:none}.page.active{display:block}h1{font-size:24px;margin:0 0 22px}.toolbar{display:flex;justify-content:flex-end;gap:12px;margin-top:-48px;margin-bottom:28px}
+  .btn{border:1px solid #c6ccd6;background:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-weight:600}.btn:hover{background:#f3f5f8}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue2)}
+  .banner{max-width:980px;margin:0 auto 28px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:12px 18px;text-align:center}.hero{max-width:1180px;margin:0 auto 42px;background:#fff;border:1px solid #edf0f4;border-radius:42px;box-shadow:var(--shadow);padding:28px 40px;color:#667085}.hero-input{display:flex;gap:10px;margin-top:14px}.hero-input input{flex:1;border:0;outline:none;font-size:18px}.circle-go{width:42px;height:42px;border-radius:50%;border:0;background:#eef1f4;cursor:pointer;font-size:22px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px}.agents-table{width:100%;border-collapse:collapse}.agents-table th,.agents-table td{padding:18px 16px;border-bottom:1px solid var(--line);text-align:left}.agents-table th{font-size:14px}.agent-icon{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:8px;background:#e6f7fb;color:#0089a6;font-weight:800;margin-right:12px}.agent-link{cursor:pointer;color:#1f2328}.search{float:right;margin-bottom:10px;border:1px solid #c6ccd6;border-radius:6px;padding:10px 12px;width:260px}.subtle{color:var(--muted);font-size:13px}
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:20;align-items:center;justify-content:center}.modal-backdrop.show{display:flex}.modal{width:min(650px,92vw);background:#fff;border-radius:12px;box-shadow:0 18px 48px rgba(0,0,0,.24);padding:24px}.modal h2{margin:0 0 8px}
+  .field{margin:16px 0}.field label{display:block;font-weight:600;margin-bottom:7px}.field input,.field textarea,.field select{width:100%;border:1px solid #b8c0cc;border-radius:6px;padding:10px;background:#fff}.field textarea{min-height:90px;resize:vertical}.instructions{min-height:510px!important;line-height:1.45}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  .crumb{color:var(--blue);cursor:pointer;font-size:14px;margin-bottom:12px}.agent-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}.agent-title h1{margin:0 0 4px}.status{display:inline-flex;align-items:center;gap:6px;color:#067a46;font-size:13px}.dot{width:8px;height:8px;background:#20a464;border-radius:50%}
+  .detail-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:22px}.stack{display:flex;flex-direction:column;gap:16px}.section{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px}.section h3{margin:0 0 6px;font-size:17px}.section-head{display:flex;justify-content:space-between;align-items:center}.mini-btn{border:1px solid #c6ccd6;background:#fff;border-radius:5px;padding:6px 10px;cursor:pointer}.component-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-top:1px solid #eceff3}.component-row:first-of-type{border-top:0}.pill{border:1px solid #d0d5dd;border-radius:999px;padding:4px 9px;font-size:12px;background:#fafafa}.check{color:var(--green);font-weight:700}
+  .guide{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-bottom:16px}.progress{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}.progress span{display:block;height:100%;width:0;background:#f97316;transition:.3s}
+  .test-panel{position:sticky;top:86px;height:650px;display:flex;flex-direction:column}.chat-body{flex:1;overflow:auto;padding:14px;background:#f8fafc;border:1px solid var(--line);border-radius:8px}.bubble{max-width:100%;padding:10px 12px;border-radius:12px;margin:8px 0;line-height:1.45}.user{margin-left:auto;background:#dbeafe;max-width:88%}.bot{background:#fff;border:1px solid #dce2ea}.chat-input{display:flex;gap:8px;margin-top:10px}.chat-input input{flex:1;border:1px solid #b8c0cc;border-radius:6px;padding:10px}
+  .prompt-chip{display:block;width:100%;text-align:left;border:0;background:transparent;padding:0;cursor:pointer;color:inherit}.prompt-chip:hover{color:#0f6cbd}
+  .hr-doc{background:#fff;border:1px solid #d7dce5;border-radius:8px;overflow:hidden;font-size:13px;line-height:1.48}.hr-cover{padding:18px;background:linear-gradient(135deg,#eef6ff,#f8fbff);border-bottom:1px solid #d7dce5}.hr-cover h2{margin:0 0 6px;color:#0f6cbd;font-size:19px}.hr-meta{display:grid;grid-template-columns:100px 1fr;gap:3px 8px;margin-top:10px;font-size:12px}.hr-section{padding:12px 16px;border-bottom:1px solid #eceff3}.hr-section:last-child{border-bottom:0}.hr-section h4{margin:0 0 6px;color:#0f6cbd;font-size:14px}.hr-section p{margin:0 0 6px}.hr-section ul{margin:5px 0 0 18px;padding:0}.hr-section li{margin:3px 0}.source-tag{display:inline-block;background:#eef6ff;color:#115ea3;border:1px solid #cfe4f7;border-radius:999px;padding:3px 8px;margin:2px 3px 2px 0;font-size:11px}
+  @media(max-width:900px){.detail-grid{grid-template-columns:1fr}.test-panel{position:static;height:520px}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="waffle">⠿</div><div class="logo"></div><div class="brand">Copilot Studio Simulation</div><div class="spacer"></div><div class="env">Environment<br><strong>ABC Pte Ltd</strong></div><div>⚙</div><div>?</div><div class="avatar">DT</div></header>
+<div class="layout">
+  <aside class="sidebar"><div class="navitem"><div class="ico">⌂</div>Home</div><div class="navitem active"><div class="ico">◈</div>Agents</div><div class="navitem"><div class="ico">⌘</div>Flows</div><div class="navitem"><div class="ico">▦</div>Tools</div><div class="navitem"><div class="ico">•••</div>More</div></aside>
+  <main class="main">
+    <section id="agentsPage" class="page active">
+      <h1>Agents</h1><div class="toolbar"><button class="btn primary" id="createBtn">＋ Create blank agent</button><button class="btn">Import agent</button></div>
+      <div class="banner">Published from Copilot Studio</div>
+      <div class="hero"><div>Start building by describing what your agent needs to do</div><div class="hero-input"><span>⚙</span><input id="quickDesc" placeholder="Example: Create an IT assistant that analyses support incidents and recommends service improvements" /><button class="circle-go" id="quickCreate">→</button></div></div>
+      <h2>My agents</h2><input class="search" placeholder="Search agents" /><div style="clear:both"></div>
+      <div class="card"><table class="agents-table"><thead><tr><th>Name</th><th>Type</th><th>Last modified</th><th>Last published</th><th>Owner</th></tr></thead><tbody id="agentRows">
+        <tr><td><span class="agent-icon">AI</span><span class="agent-link">HR Advisor</span></td><td>Agent</td><td>Just now</td><td>Never</td><td>Trainer</td></tr>
+        <tr><td><span class="agent-icon">AI</span><span class="agent-link">Sales Advisor</span></td><td>Agent</td><td>Today</td><td>Today</td><td>Trainer</td></tr>
+        <tr><td><span class="agent-icon">AI</span><span class="agent-link">Executive Advisor</span></td><td>Agent</td><td>18 days ago</td><td>Never</td><td>Trainer</td></tr>
+        <tr><td><span class="agent-icon">AI</span><span class="agent-link" data-agent="it">IT Advisor</span></td><td>Agent</td><td>Just now</td><td>Never</td><td>Trainer</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section id="detailPage" class="page">
+      <div class="crumb" id="backBtn">← Back to Agents</div>
+      
+      <div class="agent-header"><div class="agent-icon" style="width:48px;height:48px;font-size:18px">AI</div><div class="agent-title"><h1 id="agentTitle">New Agent</h1><div class="subtle" id="agentDescText">No description yet</div><div class="status"><span class="dot"></span> Draft saved</div></div><div class="spacer"></div><button class="btn">Settings</button><button class="btn primary" id="publishBtn">Publish</button></div>
+      <div class="detail-grid">
+        <div class="stack">
+          <div class="section"><div class="section-head"><div><h3>Details</h3><div class="subtle">Name and describe your agent.</div></div><button class="mini-btn" onclick="document.getElementById('nameInput').focus()">Edit</button></div><div class="field"><label>Agent name</label><input id="nameInput"></div><div class="field"><label>Description</label><textarea id="descInput"></textarea></div><div class="field"><label>Primary model</label><select><option>GPT-4.1</option><option>GPT-4o</option><option>Auto-select</option></select></div></div>
+          <div class="section"><div class="section-head"><div><h3>Instructions</h3><div class="subtle">Tell the agent how to behave and answer.</div></div><span class="pill">Core component</span></div><div class="field"><textarea class="instructions" id="instructionsInput"></textarea></div></div>
+          <div class="section"><div class="section-head"><div><h3>Knowledge</h3><div class="subtle">Add files and approved information sources.</div></div><button class="mini-btn" id="addKnowledgeBtn">＋ Add knowledge</button></div><div id="knowledgeList"></div></div>
+          <div class="section"><div class="section-head"><div><h3>Tools</h3><div class="subtle">Allow your agent to perform actions.</div></div><button class="mini-btn" id="addToolBtn">＋ Add tool</button></div><div id="toolList"></div></div>
+          <div class="section"><div class="section-head"><div><h3>Topics</h3><div class="subtle">Create conversation areas for common questions.</div></div><button class="mini-btn" id="addTopicBtn">＋ Add topic</button></div><div id="topicList"><div class="component-row"><span>Conversation Start</span><span class="pill">System</span></div><div class="component-row"><span>Greeting</span><span class="pill">System</span></div></div></div>
+          <div class="section"><div class="section-head"><div><h3>Suggested prompts</h3><div class="subtle">Examples students or users can click.</div></div><button class="mini-btn" id="addPromptBtn">＋ Add prompt</button></div><div id="promptList"></div></div>
+        </div>
+        <div class="section test-panel"><div class="section-head"><div><h3>Test your agent</h3><div class="subtle">Try the testing prompt.</div></div><button class="mini-btn" id="resetChat">Reset</button></div><div class="chat-body" id="chatBody"></div><div class="chat-input"><input id="chatInput" placeholder="Ask a question"><button class="btn primary" id="sendBtn">Send</button></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="createModal"><div class="modal"><h2>Create a blank agent</h2><div class="subtle">Enter the basic details. You can edit everything later.</div><div class="field"><label>Agent name</label><input id="modalName" placeholder="Example: IT Advisor"></div><div class="field"><label>Description</label><textarea id="modalDesc" placeholder="Example: Analyse IT support incidents and provide management insights"></textarea></div><div class="actions"><button class="btn" id="cancelCreate">Cancel</button><button class="btn primary" id="confirmCreate">Create</button></div></div></div>
+
+
+<script>
+const IT_DESCRIPTION=`An AI assistant that helps IT professionals analyse support incidents, identify trends and recurring issues, evaluate SLA performance, uncover root causes, and recommend actions to improve IT service performance using the organisation's incident data.`;
+
+const IT_INSTRUCTIONS=`You are IT Advisor, an AI assistant that helps IT professionals and management analyse IT support incidents and improve IT service performance.
+
+Your primary responsibility is to use the uploaded IT Incident Log as the authoritative source of information.
+
+When responding:
+
+- Always analyse the uploaded IT Incident Log before answering.
+- Use the incident data as the primary source for all findings, calculations and recommendations.
+- Identify meaningful patterns, trends, recurring issues, root causes and service-performance concerns.
+- Evaluate incident volume, categories, priorities, departments affected and SLA performance.
+- Distinguish clearly between facts found in the incident log and conclusions inferred from the data.
+- Present findings in a clear, professional and management-ready format.
+- Quantify findings whenever the uploaded data supports it.
+- Prioritise recommendations based on likely business impact and urgency.
+- Clearly state any assumptions or data limitations.
+
+Grounding Rules:
+
+- Do not invent incident counts, SLA targets, departments, root causes, dates, priorities or performance figures that are not supported by the uploaded incident log.
+- If the requested information cannot be determined from the incident log, state that the information is unavailable.
+- General IT service-management knowledge may be used only to explain findings and structure recommendations. It must not replace or contradict the uploaded incident data.
+- Do not claim that a root cause is confirmed unless the incident log provides supporting evidence.
+- When appropriate, include a short "Source Used" section naming the incident log.
+
+You can assist with:
+
+- Incident volume analysis
+- Top incident category analysis
+- Recurring issue identification
+- Trend analysis
+- Root cause analysis
+- SLA performance analysis
+- High-priority incident review
+- Department impact analysis
+- Service improvement recommendations
+- Management reporting
+- Action planning
+
+For the prompt "Analyze IT Support Incidents", produce a management report containing:
+
+- Executive Summary
+- Incident Volume Analysis
+- Top Incident Categories
+- Recurring Issues and Trends
+- Root Cause Analysis
+- SLA Performance Analysis
+- High-Priority Incidents
+- Department Impact Analysis
+- Key Insights
+- Recommendations
+- Next Steps
+
+Always provide responses that are accurate, evidence-based, well-structured, professional and actionable.`;
+
+const IT_KNOWLEDGE_FILES=['D1_IT_Template.docx','D2_IT_Incident_Log.xlsx'];
+const state={knowledgeSources:[],tool:true,topic:false,prompt:true};
+
+const agentsPage=document.getElementById('agentsPage');
+const detailPage=document.getElementById('detailPage');
+const modal=document.getElementById('createModal');
+
+function showDetail(name='New Agent',desc=''){
+  agentsPage.classList.remove('active');
+  detailPage.classList.add('active');
+  document.getElementById('nameInput').value=name;
+  document.getElementById('descInput').value=desc;
+  updateHeader();
+  updateProgress();
+}
+
+function setupIT(){
+  state.knowledgeSources=[];
+  state.tool=true;
+  state.topic=false;
+  state.prompt=true;
+
+  document.getElementById('nameInput').value='IT Advisor';
+  document.getElementById('descInput').value=IT_DESCRIPTION;
+  document.getElementById('instructionsInput').value=IT_INSTRUCTIONS;
+
+  renderKnowledge();
+  const addKnowledgeBtn=document.getElementById('addKnowledgeBtn');
+  addKnowledgeBtn.disabled=false;
+  addKnowledgeBtn.textContent='＋ Add knowledge (2 remaining)';
+
+  document.getElementById('toolList').innerHTML=
+    '<div class="component-row"><span>🔧 Analyze IT Support Incidents</span><span class="check">Added ✓</span></div>';
+
+  document.getElementById('topicList').innerHTML=
+    '<div class="component-row"><span>Conversation Start</span><span class="pill">System</span></div>'+
+    '<div class="component-row"><span>Greeting</span><span class="pill">System</span></div>';
+
+  document.getElementById('promptList').innerHTML=
+    `<div class="component-row"><button class="prompt-chip" id="incidentPrompt"><strong>Analyze this month's IT support incidents to identify trends, recurring issues, root causes, and opportunities to improve IT service performance.</strong></button><span class="check">Added ✓</span></div>`;
+
+  document.getElementById('chatBody').innerHTML='';
+  document.getElementById('incidentPrompt').onclick=()=>{
+    document.getElementById('chatInput').value="Analyze this month's IT support incidents to identify trends, recurring issues, root causes, and opportunities to improve IT service performance.";
+    sendChat();
+  };
+
+  updateHeader();
+  updateProgress();
+}
+
+function renderKnowledge(){
+  document.getElementById('knowledgeList').innerHTML=state.knowledgeSources.length
+    ? state.knowledgeSources.map(x=>`<div class="component-row"><span>📊 ${x}</span><span class="check">Ready ✓</span></div>`).join('')
+    : '<div class="component-row"><span>No knowledge added</span><span class="subtle">2 files required</span></div>';
+}
+
+function updateHeader(){
+  document.getElementById('agentTitle').textContent=
+    document.getElementById('nameInput').value.trim()||'New Agent';
+  document.getElementById('agentDescText').textContent=
+    document.getElementById('descInput').value.trim()||'No description yet';
+}
+
+function updateProgress(){
+  // The reference interface does not display a progress widget.
+  // Keep this function safe so the rest of the simulation works normally.
+  const progressBar=document.getElementById('progressBar');
+  const progressText=document.getElementById('progressText');
+  if(!progressBar || !progressText) return;
+
+  let s=0;
+  if(document.getElementById('nameInput').value.trim())s++;
+  if(document.getElementById('descInput').value.trim())s++;
+  if(document.getElementById('instructionsInput').value.trim())s++;
+  if(state.knowledgeSources.length)s++;
+  if(state.topic)s++;
+  if(state.prompt)s++;
+  progressBar.style.width=(s/6*100)+'%';
+  progressText.textContent=s+' of 6 components completed';
+}
+
+function incidentAnalysisHtml(){
+  return `<div class="hr-doc">
+<div class="hr-cover"><div class="subtle">ABC Pte Ltd · Information Technology Department · Management Report</div><h2>IT Incident Management Report – Current Month</h2><div class="hr-meta"><strong>Reporting Period</strong><span>Current Month</span><strong>Prepared For</strong><span>Management</span><strong>Primary Source</strong><span>D2_IT_Incident_Log.xlsx</span></div></div>
+<div class="hr-section"><h4>Executive Summary</h4>
+<p>A significant spike in IT support incidents (120 logged cases). The majority were related to software, Teams, VPN, Wi-Fi, and email issues, with recurring root causes such as license unavailability, network latency, and password problems. SLA compliance was inconsistent, with many high-priority and critical incidents breaching resolution targets. Preventive measures like standardizing deployments, monitoring infrastructure, and enabling self-service tools are repeatedly recommended but not yet fully implemented.</p>
+<div class="hr-section"><h4>Incident Volume Analysis</h4>
+<p>Total incidents: 120</p>
+<p>Critical incidents: 28 (≈23%)</p>
+<p>High incidents: 34 (≈28%)</p>
+<p>Medium incidents: 36 (≈30%)</p>
+<p>Low incidents: 22 (≈19%)</p>
+<p>Resolution times ranged from 0.75 hours to 20 hours, with several escalations exceeding SLA thresholds.</p>
+<div class="hr-section"><h4>Top Incident Categories</h4>
+<p>Software (28 incidents, 23%) – License unavailability, installation errors</p>
+<p>Teams (20 incidents, 17%) – Audio device issues, network latency</p>
+<p>VPN (18 incidents, 15%) – Gateway issues, expired certificates</p>
+<p>Wi-Fi (16 incidents, 13%) – Weak signal, DHCP failures</p>
+<p>Email (15 incidents, 12%) – Mailbox full, sync delays</p>
+<p>Printer (14 incidents, 12%) – Driver issues, offline devices</p>
+<p>Password (9 incidents, 8%) – Expired/forgotten passwords</p>
+<div class="hr-section"><h4>Recurring Issues and Trends</h4>
+<p>Software licensing gaps across departments</p>
+<p>Teams instability during critical meetings</p>
+<p>VPN failures due to MFA errors and expired certificates</p>
+<p>Wi-Fi reliability issues across Finance, HR, and IT</p>
+<p>Password resets consuming IT resources</p>
+<div class="hr-section"><h4>Root Cause Analysis</h4>
+<p>Licensing gaps → Poor license management and provisioning</p>
+<p>Network latency → Infrastructure bottlenecks and insufficient monitoring</p>
+<p>Authentication failures → Weak MFA and certificate renewal processes</p>
+<p>Mailbox quotas → Lack of proactive monitoring of Exchange storage</p>
+<p>Device drivers → Outdated or inconsistent printer/Teams drivers</p>
+<div class="hr-section"><h4>SLA Performance Analysis</h4>
+<p>SLA Met: 42% of incidents</p>
+<p>SLA Breached: 58% (mostly high/critical cases)</p>
+<p>Long resolution times (15–20 hours) common in escalated cases, especially VPN, Wi-Fi, and printer issues</p>
+<div class="hr-section"><h4>High-Priority Incidents</h4>
+<p>Critical VPN failures disrupted executive access</p>
+<p>Critical Teams outages impacted collaboration</p>
+<p>Critical Wi-Fi failures caused downtime</p>
+<p>Critical Printer issues delayed Finance/Marketing operations</p>
+<div class="hr-section"><h4>Department Impact Analysis</h4>
+<p>Executive: High impact from VPN, Teams, and printer failures</p>
+<p>Finance: Frequent Wi-Fi, printer, and software license issues</p>
+<p>Marketing: Teams and email disruptions affected collaboration</p>
+<p>HR: Password resets and mailbox issues caused delays</p>
+<p>Operations: VPN and software licensing problems common</p>
+<p>IT: Email sync delays and Wi-Fi issues impacted internal support</p>
+<div class="hr-section"><h4>Key Insights</h4>
+<p>Licensing & provisioning are the single largest recurring issue</p>
+<p>Network-related problems dominate critical incidents</p>
+<p>Password resets remain a persistent drain on IT resources</p>
+<p>SLA breaches concentrated in escalated cases</p>
+<div class="hr-section"><h4>Recommendations</h4>
+<p>Automate license management</p>
+<p>Enhance network monitoring</p>
+<p>Enable self-service password reset</p>
+<p>Improve escalation handling with stricter SLA targets</p>
+<p>Standardize deployments to reduce installation errors</p>
+<p>Regular certificate reviews to prevent VPN outages</p>
+<div class="hr-section"><h4>Next Steps</h4>
+<p>Implement automation for license provisioning and password resets</p>
+<p>Deploy monitoring dashboards for VPN, Wi-Fi, and Teams performance</p>
+<p>Review SLA policies to ensure critical incidents are prioritized</p>
+<p>Conduct training for IT staff on escalation and preventive actions</p>
+<p>Schedule monthly audits of certificates, mailbox quotas, and device drivers</p>
+<div class="hr-section"><strong>Source Used</strong><br><span class="source-tag">D2_IT_Incident_Log.xlsx</span></div>
+</div>`;
+}
+
+function sendChat(){
+  const input=document.getElementById('chatInput');
+  const q=input.value.trim();
+  if(!q)return;
+
+  const body=document.getElementById('chatBody');
+  const safe=q.replace(/[<>]/g,'');
+  body.insertAdjacentHTML('beforeend',`<div class="bubble user">${safe}</div>`);
+
+  let response;
+  if(state.knowledgeSources.length < 2){
+    response='Please add both required knowledge files—the IT Template and IT Incident Log—before running the analysis.';
+  }else if(/analy[sz]e.*it support incidents|incident analysis/i.test(q)){
+    response=incidentAnalysisHtml();
+  }else{
+    response='I could not determine the requested insight from the uploaded IT Incident Log.';
+  }
+
+  setTimeout(()=>{
+    body.insertAdjacentHTML('beforeend',`<div class="bubble bot">${response}</div>`);
+    body.scrollTop=body.scrollHeight;
+  },250);
+
+  input.value='';
+  body.scrollTop=body.scrollHeight;
+}
+
+document.getElementById('agentRows').addEventListener('click',e=>{
+  const l=e.target.closest('.agent-link');
+  if(!l)return;
+  if(l.dataset.agent==='it'){
+    showDetail('IT Advisor',IT_DESCRIPTION);
+    setupIT();
+  }else{
+    showDetail(l.textContent.trim(),'Sample training agent.');
+  }
+});
+
+document.getElementById('backBtn').onclick=()=>{
+  detailPage.classList.remove('active');
+  agentsPage.classList.add('active');
+};
+
+document.getElementById('createBtn').onclick=()=>modal.classList.add('show');
+document.getElementById('cancelCreate').onclick=()=>modal.classList.remove('show');
+
+document.getElementById('confirmCreate').onclick=()=>{
+  modal.classList.remove('show');
+  showDetail(
+    document.getElementById('modalName').value.trim()||'New Agent',
+    document.getElementById('modalDesc').value.trim()
+  );
+};
+
+document.getElementById('quickCreate').onclick=()=>showDetail(
+  'New AI Agent',
+  document.getElementById('quickDesc').value.trim()
+);
+
+['nameInput','descInput','instructionsInput'].forEach(id=>
+  document.getElementById(id).addEventListener('input',()=>{
+    updateHeader();
+    updateProgress();
+  })
+);
+
+document.getElementById('addKnowledgeBtn').onclick=()=>{
+  const nextFile=IT_KNOWLEDGE_FILES.find(file=>!state.knowledgeSources.includes(file));
+  if(!nextFile){
+    alert('Both required IT knowledge files have already been added.');
+    return;
+  }
+
+  const n=prompt('Enter a knowledge source name:',nextFile);
+  if(n&&n.trim()){
+    const cleaned=n.trim();
+    if(!state.knowledgeSources.includes(cleaned))state.knowledgeSources.push(cleaned);
+    renderKnowledge();
+    updateProgress();
+
+    const remaining=IT_KNOWLEDGE_FILES.filter(file=>!state.knowledgeSources.includes(file)).length;
+    const button=document.getElementById('addKnowledgeBtn');
+    button.textContent=remaining?`＋ Add knowledge (${remaining} remaining)`:'✓ All knowledge added';
+    button.disabled=!remaining;
+  }
+};
+
+document.getElementById('addToolBtn').onclick=()=>{
+  const n=prompt('Enter a tool name:','Analyze IT Support Incidents');
+  if(n&&n.trim()){
+    state.tool=true;
+    document.getElementById('toolList').innerHTML=
+      `<div class="component-row"><span>🔧 ${n.trim()}</span><span class="check">Added ✓</span></div>`;
+  }
+};
+
+document.getElementById('addTopicBtn').onclick=()=>{
+  const n=prompt('Enter a topic name:','Analyze IT Support Incidents');
+  if(n&&n.trim()){
+    state.topic=true;
+    document.getElementById('topicList').innerHTML=
+      '<div class="component-row"><span>Conversation Start</span><span class="pill">System</span></div>'+
+      '<div class="component-row"><span>Greeting</span><span class="pill">System</span></div>'+
+      `<div class="component-row"><span>💬 ${n.trim()}</span><span class="check">Ready ✓</span></div>`;
+    updateProgress();
+  }
+};
+
+document.getElementById('addPromptBtn').onclick=()=>{
+  const n=prompt('Enter a suggested prompt:',"Analyze this month's IT support incidents to identify trends, recurring issues, root causes, and opportunities to improve IT service performance.");
+  if(n&&n.trim()){
+    state.prompt=true;
+    document.getElementById('promptList').innerHTML=
+      `<div class="component-row"><button class="prompt-chip" id="incidentPrompt"><strong>${n.trim()}</strong></button><span class="check">Added ✓</span></div>`;
+    document.getElementById('incidentPrompt').onclick=()=>{
+      document.getElementById('chatInput').value=n.trim();
+      sendChat();
+    };
+    updateProgress();
+  }
+};
+
+document.getElementById('sendBtn').onclick=sendChat;
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter')sendChat();
+});
+document.getElementById('resetChat').onclick=()=>document.getElementById('chatBody').innerHTML='';
+document.getElementById('publishBtn').onclick=()=>alert('Published from Copilot Studio');
+</script>
+
+</body>
+</html>
